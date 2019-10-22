@@ -1,0 +1,191 @@
+---
+title: "Homework 2"
+author: "Han Siyue 17307110012"
+date: "2019/10/14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Exercise 5.3
+Compute a Monte Carlo estimate $\hat\theta$ of
+$$
+\theta = \int_0^{0.5}e^{-x}dx
+$$
+by sampling from Uniform(0, 0.5), and estimate the variance of $\hat\theta$. Find another Monte Carlo estimator $\theta^*$ by sampling from the exponential distribution. Which of the variances (of $\hat\theta$ and $\theta^*$) is smaller, and why?
+```{r}
+m <- 1000
+n <- 10000
+a <- 0
+b <- 0.5
+theta.hat <- theta.star <- numeric(m)
+for (k in 1:m) {
+  x <- runif(n, a, b)
+  theta.hat[k] <- (b-a) * mean(exp(-x))
+
+  x <- rexp(n)
+  theta.star[k] <- mean(x >= exp(-0.5) & x <= 1)
+}
+print(sd(theta.hat))
+print(sd(theta.star))
+```
+
+As wee can see, the variances of $\hat\theta$ is smaller. This is because hit-or-miss is not accurate for limiting random samples from exponential distribution in a small range.
+
+### Exercise 5.4
+Write a function to compute a Monte Carlo estimate of the Beta(3, 3) cdf, and use the function to estimate $F(x)$ for $x = 0.1, 0.2, . . . , 0.9$. Compare the estimates with the values returned by the **pbeta** function in R.
+```{r}
+beta33est <- function(b) {
+  n <- 10000
+  y <- numeric(n)
+  for (i in 1:n) {
+    x <- runif(1, 0, b)
+    y[i] <- x^2 * (1-x)^2 / beta(3, 3)
+  }
+  b * mean(y)
+}
+est_val <- true_val <- numeric(9)
+for (i in 1:9) {
+  est_val[i] <- beta33est(i/10)
+  true_val[i] <- pbeta(i/10, 3, 3)
+}
+quantile = 1:9/10
+print(round(rbind(quantile, est_val, true_val), 3))
+```
+
+### Exercise 5.5
+Compute (empirically) the efficiency of the sample mean Monte Carlo method of estimation of the definite integral in Example 5.3 relative to the “hit or miss” method in Example 5.4.
+```{r}
+x <- seq(.1, 2.5, length = 10)
+m <- 1000
+MC <- HoM <- numeric(length(x))
+for (i in 1:length(x)) {
+  mc <- hom <- numeric(1000)
+  for (j in 1:1000) {
+    u <- runif(m)
+    g <- x[i] * exp(-(u * x[i])^2 / 2)
+    mc[j] <- mean(g) / sqrt(2 * pi) + 0.5
+    
+    z <- rnorm(m)
+    hom[j] <- mean(z < x[i])
+  }
+  MC[i] <- sd(mc)
+  HoM[i] <- sd(hom)
+}
+print(round(rbind(x, MC, HoM), 6))
+```
+
+As we can see, when $x$ is small, say $x < 1.7$, the efficiency of the sample mean Monte Carlo method is better than that of the “hit or miss” method. However, as $x$ goes bigger, say $x>2$, the sample mean Monte Carlo method becomes less efficient than the “hit or miss” method.
+
+### Exercise 5.9
+The Rayleigh density [156, (18.76)] is
+$$
+f(x) = \frac{x}{\sigma^2}e^{−x^2/(2\sigma^2)},\quad x\ge 0, σ > 0.
+$$
+Implement a function to generate samples from a Rayleigh(σ) distribution, using antithetic variables. What is the percent reduction in variance of $\frac{X+X'}{2}$ compared with $\frac{X_1+X_2}{2}$ for independent $X_1$, $X_2$?
+```{r}
+MC.Rayleigh <- function(x, sigma, R = 10000, antithetic = TRUE) {
+  u <- runif(R/2)
+  if (!antithetic) {
+    v <- runif(R/2)
+  } 
+  else{
+    v <- 1 - u
+  }
+  u <- c(u, v)
+  cdf <- numeric(length(x))
+  for (i in 1:length(x)) {
+    g <- x[i] * u*x[i] * exp(-(u*x[i])^2 / (2 * sigma^2)) / sigma^2
+    cdf[i] <- mean(g)
+  }
+  cdf
+}
+
+m <- 1000
+MC1 <- MC2 <- numeric(m)
+x <- 1
+sigma <- 1
+for (i in 1:m) {
+  MC1[i] <- MC.Rayleigh(x, sigma, R = 1000, antithetic = FALSE)
+  MC2[i] <- MC.Rayleigh(x, sigma, R = 1000)
+}
+# print(sd(MC1))
+# print(sd(MC2))
+print((var(MC1) - var(MC2))/var(MC1))
+```
+
+The percent reduction in variance is about 90%.
+
+### Exercise 5.10
+Use Monte Carlo integration with antithetic variables to estimate
+$$
+\int^1_0 \frac{e^{−x}}{1 + x^2} dx,
+$$
+and find the approximate reduction in variance as a percentage of the variance without variance reduction.
+```{r}
+MC.func <- function(R = 10000, antithetic = TRUE) {
+  u <- runif(R/2)
+  if (!antithetic) {v <- runif(R/2)} 
+  else {v <- 1 - u}
+  u <- c(u, v)
+  g <- exp(-u) / (1 + u^2)
+  cdf <- mean(g)
+  cdf
+}
+m <- 1000
+MC1 <- MC2 <- numeric(m)
+for (i in 1:m) {
+  MC1[i] <- MC.func(R = 1000, antithetic = FALSE)
+  MC2[i] <- MC.func(R = 1000)
+}
+print(sd(MC1))
+print(sd(MC2))
+print((var(MC1) - var(MC2))/var(MC1))
+```
+
+The percent reduction in variance is about 96%.
+
+### Extra Exercise
+Monte Carlo method can be used to approximate the fraction of a d-dimensional hypersphere which lies in the inscribed $d$-dimensional hypercube. Simulate with different dimensions $d = 2,3,4,...,10$. (Hint: use **apply** function.)
+
+(1). Derive the formula for the EXACT values for the above problem for each $d$-dimension.
+```{r}
+sphere_frac <- function(d, total = 10000) {
+  x <- matrix(runif(total*d, -1, 1), nrow = total, ncol = d)
+  y <- rowSums(x^2) <= 1
+  mean(y)
+}
+sphere_exact <- function(d) {
+  pi^(d/2) / gamma(1 + d/2) / 2^d
+}
+```
+
+(2). Using the above formula, approximate the value of $\pi$. Find the number of points needed to approximate $\pi$ to its 4-th digit for each dimension $d$. Set the random seed with set.seed(123) at the beginning of your R code.
+```{r}
+set.seed(123)
+pi.approx <- 4 * sphere_frac(2,1000000)
+pi.approx
+
+points_needed <- function(d) {
+  pi.approx <- 0
+  n1 <- 1
+  while (round(pi.approx, 4) != 3.1416) {
+    n1 = n1 + 1
+    set.seed(123)
+    pi.approx <- (sphere_frac(d, n1) * gamma(1 + d/2) * 2^d)^(2/d)
+  }
+  n1
+}
+
+dimensions <- 2:10
+num_points <- numeric(9)
+for (d in dimensions) {
+  num_points[d-1] <- points_needed(d)
+}
+
+print(rbind(dimensions, num_points))
+```
+
+

@@ -1,0 +1,118 @@
+---
+title: "Homework 3"
+author: "Han Siyue 17307110012"
+date: "2019/10/19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Exercise 5.12
+Let $\widehat\theta^{IS}_f$ be an importance sampling estimator of $θ = \int g(x)dx$, where the importance function f is a density. Prove that if $g(x)/f(x)$ is bounded, then the variance of the importance sampling estimator $\widehat\theta^{IS}_f$ is finite.
+
+pf:
+$$
+\because \theta = \int g(x)dx = \int \frac{g(x)}{f(x)}f(x)dx \\
+\therefore \widehat\theta^{IS}_f = \frac{1}{m} \sum^m_{i=1}\frac{g(x_i)}{f(x_i)} \\
+\therefore {\rm var}(\widehat\theta^{IS}_f) = \frac{1}{m^2} \cdot m \cdot {\rm var}(\frac{g(x)}{f(x)}) = \frac{1}{m} {\rm var}(\frac{g(x)}{f(x)}) = \frac{1}{m} {\rm E}(\frac{g(x)}{f(x)})^2 - \frac{1}{m} [{\rm E}(\frac{g(x)}{f(x)})]^2 \\
+$$
+Because $g(x)/f(x)$ is bounded, then we have $(g(x)/f(x))^2$ is bounded, too. Then ${\rm E}(\frac{g(x)}{f(x)})$ and ${\rm E}(\frac{g(x)}{f(x)})^2$ is also bounded. Therefore, the variance of $\widehat\theta^{IS}_f$ is finite.
+
+Q.E.D.
+
+### Exercise 5.14
+Obtain a Monte Carlo estimate of
+$$
+\int_1^\infty \frac{x^2}{\sqrt{2\pi}}e^{-x^2/2}dx
+$$
+by importance sampling.
+```{r}
+x <- rnorm(10000)
+x <- x * (x > 1)
+theta_hat <- mean(x^2)
+theta_hat
+```
+
+
+### Extra Exercise 1
+Given two random variables $X$ and $Y$ , prove the law of total variance 
+$$
+{\rm var}(Y) = {\rm E}\{{\rm var}(Y|X)\} + {\rm var}\{{\rm E}(Y|X)\}
+$$
+Be explicit at every step of your proof.
+
+pf:
+$$
+\begin{align}
+\because \ \ &{\rm var}(Y) \\=& {\rm E}(X^2)- ({\rm E}X)^2 \\
+=&\int {\rm E}(X^2|Y=y)*p(y) dy-\left(\int {\rm E}(X|Y=y)*p(y) dy\right)^2 \\
+=&{\rm E}\{{\rm E}(X^2|Y)\}-\{{\rm E}[{\rm E}(X|Y)]\}^2 \\
+\\ {\rm and}\ \because \ \ &{\rm E}\{{\rm var}(Y|X)\} + {\rm var}\{{\rm E}(Y|X)\} \\
+=&{\rm E}\{{\rm E}(X^2|Y)-[{\rm E}(X|Y)]^2\}+{\rm E}\{{\rm E}(X|Y)-{\rm E}[{\rm E}(X|Y)]\}^2 \\
+=&{\rm E}\{{\rm E}(X^2|Y)\}-{\rm E}\{[{\rm E}(X|Y)]^2\}+{\rm E}\{[{\rm E}(X|Y)]^2\}-\{{\rm E}[{\rm E}(X|Y)]\}^2 \\
+=&{\rm E}\{{\rm E}(X^2|Y)\}-\{{\rm E}[{\rm E}(X|Y)]\}^2 \\
+\\ \therefore \ \ &{\rm var}(Y) = {\rm E}\{{\rm var}(Y|X)\} + {\rm var}\{{\rm E}(Y|X)\}
+\end{align}
+$$
+Q.E.D.
+
+### Extra Exercise 2
+Define $\theta = \int_A g(x)dx$, where $A$ is a bounded set and $g \in \mathcal L_2(A)$. Let $f$ be an importance function which is a density function supported on the set $A$.
+
+#### (a) 
+Describe the steps to obtain the importance sampling estimator $\widehat\theta_n$, where $n$ is the number of random samples generated during the process.
+
+##### steps:
+
+1. Generate $n$ ramdom samples $x_1, ..., x_n$ from a r.v. $X$ with pdf $f$, eithor directly calling functions in R related to this r.v. or using inverse transformation if no that function exists.
+
+2. Calculate $y_i=\frac{g(x_i)}{f(x_i)}$, for $i=1,2,...,n$.
+
+3. Alter these $n$ ramdom samples, that is, if $x_i \notin A$, set $y_i = 0$.
+
+4. Calculate $\widehat\theta_n=\frac{1}{n}\sum_{i=1}^n y_i$.
+
+#### (b) 
+Show that the Monte Carlo variance of $\widehat\theta_n$ is
+${\rm var}(\widehat\theta_n) = \frac{1}{n}\left\{\int_A \frac{g^2(x)}{f(x)}dx-\theta^2\right\}$
+
+##### pf:
+$$
+\begin{align}
+{\rm var}(\widehat\theta_n) &= \frac{1}{n^2}\cdot n \cdot {\rm var}(\frac{g(x)}{f(x)})
+\\ &= \frac{1}{n}\left\{{\rm E}\left(\frac{g^2(x)}{f^2(x)}\right)-\left[{\rm E}\left(\frac{g(x)}{f(x)}\right)\right]^2\right\}
+\\ &= \frac{1}{n}\left\{\int_A \frac{g^2(x)}{f^2(x)}f(x)dx-\left(\int_A \frac{g(x)}{f(x)}f(x)dx\right)^2\right\} 
+\\ &= \frac{1}{n}\left\{\int_A \frac{g^2(x)}{f(x)}dx-\left(\int_A g(x)dx\right)^2\right\} 
+\\ &= \frac{1}{n}\left\{\int_A \frac{g^2(x)}{f(x)}dx-\theta^2\right\}
+\end{align}
+$$
+Q.E.D.
+
+#### (c) 
+Show that the *optimal* importance function $f^*$, i.e., the minimizer of ${\rm var}(\widehat\theta_n)$, is
+$$
+f^*(x) = \frac{|g(x)|}{\int_A|g(x)|dx},
+$$
+and derive the theoretical lower bound of ${\rm var}(\widehat\theta_n)$.
+
+##### pf:
+
+According to Cauchy-Schwarz Inequality, we have
+$$
+\begin{align}
+&\int_A \frac{g^2(x)}{f(x)}dx \ \int_A f(x)dx \ge \left(\int_A g(x)dx \right)^2 \\
+&"=" {\rm holds \ when}\ \frac{g^2(x)}{f(x)}=\lambda f(x) \\
+\end{align}
+$$
+${\rm and}\ \because \int_A f(x)dx =1,\  f(x)\ge 0$, we have
+$$
+\begin{align}
+& \int_A \frac{g^2(x)}{f(x)}dx \ge \left(\int_A g(x)dx \right)^2 = \theta^2\\
+&"=" {\rm holds \ when}\ f(x)=\frac{|g(x)|}{\int_A |g(x)|dx}
+\end{align}
+$$
+
+
+$\therefore f^*(x) = {\rm argmin}_f \int_A \frac{g^2(x)}{f(x)}dx = \frac{|g(x)|}{\int_A |g(x)|dx}$, and the theoretical lower bound of ${\rm var}(\widehat\theta_n)$ is $0$.
