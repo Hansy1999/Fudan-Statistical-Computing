@@ -395,7 +395,7 @@ $(document).ready(function () {
 x &lt;- x * (x &gt; 1)
 theta_hat &lt;- mean(x^2)
 theta_hat</code></pre>
-<pre><code>## [1] 0.3928952</code></pre>
+<pre><code>## [1] 0.4182542</code></pre>
 </div>
 <div id="extra-exercise-1" class="section level3">
 <h3>Extra Exercise 1</h3>
@@ -456,16 +456,16 @@ f^*(x) = \frac{|g(x)|}{\int_A|g(x)|dx},
 <h5>pf:</h5>
 <p>According to Cauchy-Schwarz Inequality, we have <span class="math display">\[
 \begin{align}
-&amp;\int_A \frac{g^2(x)}{f(x)}dx \ \int_A f(x)dx \ge \left(\int_A g(x)dx \right)^2 \\
+&amp;\int_A \frac{g^2(x)}{f(x)}dx \ \int_A f(x)dx \ge \left(\int_A |g(x)|dx \right)^2 \\
 &amp;&quot;=&quot; {\rm holds \ when}\ \frac{g^2(x)}{f(x)}=\lambda f(x) \\
 \end{align}
 \]</span> <span class="math inline">\({\rm and}\ \because \int_A f(x)dx =1,\  f(x)\ge 0\)</span>, we have <span class="math display">\[
 \begin{align}
-&amp; \int_A \frac{g^2(x)}{f(x)}dx \ge \left(\int_A g(x)dx \right)^2 = \theta^2\\
+&amp; \int_A \frac{g^2(x)}{f(x)}dx \ge \left(\int_A |g(x)|dx \right)^2\\
 &amp;&quot;=&quot; {\rm holds \ when}\ f(x)=\frac{|g(x)|}{\int_A |g(x)|dx}
 \end{align}
 \]</span></p>
-<p><span class="math inline">\(\therefore f^*(x) = {\rm argmin}_f \int_A \frac{g^2(x)}{f(x)}dx = \frac{|g(x)|}{\int_A |g(x)|dx}\)</span>, and the theoretical lower bound of <span class="math inline">\({\rm var}(\widehat\theta_n)\)</span> is <span class="math inline">\(0\)</span>.</p>
+<p><span class="math inline">\(\therefore f^*(x) = {\rm argmin}_f \int_A \frac{g^2(x)}{f(x)}dx = \frac{|g(x)|}{\int_A |g(x)|dx}\)</span>, and the theoretical lower bound of <span class="math inline">\({\rm var}(\widehat\theta_n)\)</span> is <span class="math inline">\(\frac{1}{n}\left(\int_A |g(x)|dx \right)^2 - \frac{1}{n}\theta^2\)</span>.</p>
 </div>
 </div>
 </div>

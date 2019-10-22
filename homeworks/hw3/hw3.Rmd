@@ -102,17 +102,17 @@ and derive the theoretical lower bound of ${\rm var}(\widehat\theta_n)$.
 According to Cauchy-Schwarz Inequality, we have
 $$
 \begin{align}
-&\int_A \frac{g^2(x)}{f(x)}dx \ \int_A f(x)dx \ge \left(\int_A g(x)dx \right)^2 \\
+&\int_A \frac{g^2(x)}{f(x)}dx \ \int_A f(x)dx \ge \left(\int_A |g(x)|dx \right)^2 \\
 &"=" {\rm holds \ when}\ \frac{g^2(x)}{f(x)}=\lambda f(x) \\
 \end{align}
 $$
 ${\rm and}\ \because \int_A f(x)dx =1,\  f(x)\ge 0$, we have
 $$
 \begin{align}
-& \int_A \frac{g^2(x)}{f(x)}dx \ge \left(\int_A g(x)dx \right)^2 = \theta^2\\
+& \int_A \frac{g^2(x)}{f(x)}dx \ge \left(\int_A |g(x)|dx \right)^2\\
 &"=" {\rm holds \ when}\ f(x)=\frac{|g(x)|}{\int_A |g(x)|dx}
 \end{align}
 $$
 
 
-$\therefore f^*(x) = {\rm argmin}_f \int_A \frac{g^2(x)}{f(x)}dx = \frac{|g(x)|}{\int_A |g(x)|dx}$, and the theoretical lower bound of ${\rm var}(\widehat\theta_n)$ is $0$.
+$\therefore f^*(x) = {\rm argmin}_f \int_A \frac{g^2(x)}{f(x)}dx = \frac{|g(x)|}{\int_A |g(x)|dx}$, and the theoretical lower bound of ${\rm var}(\widehat\theta_n)$ is $\frac{1}{n}\left(\int_A |g(x)|dx \right)^2 - \frac{1}{n}\theta^2$.
