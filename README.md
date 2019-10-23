@@ -9,7 +9,7 @@
 
 For [Homework 1](.\homeworks\hw1\hw1.html), my score of this homework is: 98/100, with comment " Compare with the theoretical results? " on exercise 3.5 from TA.
 
-For [Homework 2](.\homeworks\hw2\hw2.html), no score received yet.
+For [Homework 2](.\homeworks\hw2\hw2.html), my score of this homework is: 100/100, with no comment.
 
 For [Homework 3](.\homeworks\hw3\hw3.html), no score received yet.
 
