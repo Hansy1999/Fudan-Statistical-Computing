@@ -1,0 +1,234 @@
+---
+title: "Homework 5"
+author: "Han Siyue 17307110012"
+date: "2019/11/4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Exercise 6.4
+
+**Suppose that $X_1, \cdots , X_n$ are a random sample from a from a lognormal distribution with unknown parameters. Construct a 95% confidence interval for the parameter $\mu$. **
+
+```{r}
+n <- 100
+x <- rlnorm(n, 10, 3)  # n r.v. from lognormal(10,3)
+y <- log(x)  # the log form of the above n r.v.
+ucl <- mean(y) + sd(y)/sqrt(n)*qt(0.975, n-1)  # compute upper conf. limit
+lcl <- mean(y) - sd(y)/sqrt(n)*qt(0.975, n-1)  # compute lower conf. limit
+cat("95% Confidence Interval:[", lcl, ",", ucl, "]\n")  # print the result
+```
+
+**Use a Monte Carlo method to obtain an empirical estimate of the confidence level.**
+
+```{r}
+cover <- replicate(1000, expr = {
+  n <- 100
+  x <- rlnorm(n, 10, 3)  # n r.v. from lognormal(10,3)
+  y <- log(x)  # the log form of the above n r.v.
+  temp <- (mean(y)-10) * sqrt(n) / sd(y)
+  temp > qt(0.025, n-1) & temp < qt(0.975, n-1)  # cover the truth or not
+} )
+cat("Empirical Confidence Level:", mean(cover))
+```
+
+
+### Exercise 6.9
+
+**Let $X$ be a non-negative random variable with $\mu = E[X] < \infty$. For a random sample $x_1, \cdots , x_n$ from the distribution of $X$, the Gini ratio is defined by**
+$$
+G = \frac{1}{2n^2\mu}\sum_{j=1}^n\sum_{i=1}^n|x_i-x_j|.
+$$
+**The Gini ratio is applied in economics to measure inequality in income distribution (see e.g. [163]). Note that $G$ can be written in terms of the order statistics $x_{(i)}$ as**
+$$
+G = \frac{1}{n^2\mu}\sum^n_{i=1}(2i − n − 1)x_{(i)}.
+$$
+**If the mean is unknown, let $\hat G$ be the statistic $G$ with $\mu$ replaced by $\overline x$. Estimate by simulation the mean, median and deciles of $\hat G$ if $X$ is standard lognormal. Repeat the procedure for the uniform distribution and Bernoulli(0.1). Also construct density histograms of the replicates in each case.**
+
+```{r}
+output <- function(x){
+  Ghat <- na.omit(replicate(1000, expr = x(n = 20)))
+  cat("mean G hat:", mean(Ghat), "\n")
+  cat("median G hat:", median(Ghat), "\n")
+  cat("quantile of G hat:\n")
+  print(quantile(Ghat, seq(0.1,1,0.1)))
+  p <- hist(Ghat, freq = FALSE)
+}
+```
+
+#### Output for standard lognormal distribution
+
+```{r}
+Lognorm <- function(n){
+  x <- sort(rlnorm(n, 0, 1))
+  y <- 2*(1:n) - n - 1
+  G <- sum(x*y) / (n^2 * mean(x))
+  G
+}
+output(Lognorm)
+```
+
+#### Output for uniform distribution
+
+```{r}
+Uniform <- function(n){
+  x <- sort(runif(n, 0, 1))
+  y <- 2*(1:n) - n - 1
+  G <- sum(x*y) / (n^2 * mean(x))
+  G
+}
+output(Uniform)
+```
+
+#### Output for Bernoulli(0.1) distribution
+
+```{r}
+Bernoulli <- function(n){
+  x <- sort(rbinom(n, 1, 0.1))
+  y <- 2*(1:n) - n - 1
+  G <- sum(x*y) / (n^2 * mean(x))
+  G
+}
+output(Bernoulli)
+```
+
+
+### Exercise 6.10
+
+**Construct an approximate 95% confidence interval for the Gini ratio $\gamma = E[G]$ if $X$ is lognormal with unknown parameters. **
+
+```{r}
+t <- 1000
+Ghat <- replicate(t, expr = Lognorm(n = 100))
+mean_est <- mean(Ghat)
+sd_est <- sd(Ghat)
+ucl <- mean_est + 1.96 * sd_est / sqrt(t)
+lcl <- mean_est - 1.96 * sd_est / sqrt(t)
+cat("A 95% Confidence Interval is [", lcl, ",", ucl, "]\n")
+```
+
+**Assess the coverage rate of the estimation procedure with a Monte Carlo experiment.**
+
+```{r}
+Ghat <- replicate(10000, expr = Lognorm(n = 100))
+mean_precise <- mean(Ghat)  # give a relatively more precise est for mean
+cover <- replicate(1000,expr = {
+  t <- 20
+  Ghat <- replicate(t, expr = Lognorm(n = 100))
+  mean_est <- mean(Ghat)
+  sd_est <- sd(Ghat)
+  est <- (mean_est - mean_precise) * sqrt(20) / sd_est
+  est > -1.96 & est < 1.96
+})
+cat("Coverage rate is", mean(cover))
+```
+
+
+### Extra Exercise 1
+
+**Suppose $X_1,\cdots,X_n$ are i.i.d. samples from a normal distribution $N(\mu, \sigma^2)$, $n \ge 2$. Prove that $\sum_{i=1}^n(X_i - \bar X)^2 / \sigma^2$ follows $\chi^2(n-1)$ distribution and it is independent with the sample mean $\bar X$.**
+
+$\underline{\boldsymbol{pf}}:$ 
+
+Since $X_1,\cdots,X_n$ are i.i.d. samples from $N(\mu, \sigma^2)$, then
+$$(X_i - \mu) / \sigma \sim N(0,1) \quad
+\therefore \sum_{i=1}^n(X_i - \mu)^2 / \sigma^2 \sim \chi^2(n)
+$$
+
+Note that, 
+$$
+\sum_{i=1}^n(X_i - \mu)^2 / \sigma^2 = \sum_{i=1}^n(X_i - \bar X)^2 / \sigma^2 + n(\bar X - \mu)^2 / \sigma^2
+$$
+And 
+$$
+\because \bar X \sim N(\mu, \sigma^2/n) \quad
+\therefore \sqrt n(\bar X - \mu) / \sigma \sim N(0,1) \quad
+\therefore n(\bar X - \mu)^2 / \sigma^2 \sim \chi^2(1)
+$$
+Hence, 
+$$
+\sum_{i=1}^n(X_i - \bar X)^2 / \sigma^2 \sim \chi^2(n)-\chi^2(1) = \chi^2(n-1)
+$$
+Q.E.D.
+
+
+### Extra Exercise 2
+
+**In Example 6.4, to construct a $(1 - \alpha) \times 100\%$ confidence interval for the variance parameter $\sigma^2$, we assume that the lower bound is 0 and the upper bound corresponds to a quantity involving the $\alpha$-quantile of a $\chi^2$ distribution, we now consider using $\alpha/2$ and $(1 - \alpha/2)$-quantiles of the same $\chi^2$ distribution to construct another confidence interval. It certainly will excludes 0.**
+
+
+**(1) Give the explicit form of the new confidence interval and justify its validity by showing the theoretical confidence level is $1 - \alpha$.**
+
+$\underline{\boldsymbol{solution}}:$ 
+
+The explicit form of the new confidence interval is 
+$$
+\frac{\sum_{i=1}^n(X_i - \bar X)^2}{\chi^2_{1-\alpha/2}(n-1)}
+<\sigma^2<
+\frac{\sum_{i=1}^n(X_i - \bar X)^2}{\chi^2_{\alpha/2}(n-1)}
+$$
+With this CI, we can get 
+$$
+\chi^2_{\alpha/2}(n-1)
+<\frac{\sum_{i=1}^n(X_i - \bar X)^2}{\sigma^2}
+<\chi^2_{1-\alpha/2}(n-1)
+$$
+Since we have already proved $\sum_{i=1}^n(X_i - \bar X)^2 / \sigma^2 \sim \chi^2(n-1)$ in the last exercise, then the theoretical confidence level is exactly
+$$
+{\rm P}\left[
+\chi^2_{\alpha/2}(n-1)
+<\frac{\sum_{i=1}^n(X_i - \bar X)^2}{\sigma^2}
+<\chi^2_{1-\alpha/2}(n-1)
+\right]=1-\alpha/2-\alpha/2=1-\alpha
+$$
+Q.E.D.
+
+
+**(2) Repeat the experiments in Example 6.5 with the same parameter set-up. Compare the two types of confidence interval, such as empirical coverage probability and average confidence interval width.**
+
+```{r}
+# one-tail
+n <- 20
+alpha <- .05
+UCL <- replicate(1000, expr = {
+  x <- rnorm(n, mean = 0, sd = 2)
+  (n-1) * var(x) / qchisq(alpha, df = n-1)
+} )
+# two-tail
+CI <- replicate(1000, expr = {
+  x <- rnorm(n, mean = 0, sd = 2)
+  c((n-1) * var(x) / qchisq(1-alpha/2, df = n-1),
+    (n-1) * var(x) / qchisq(alpha/2, df = n-1))
+} )
+# output
+cat("For one-tail CI:\n  The empirical coverage probability is ", mean(UCL > 4), "\n  The average confidence interval width is ", mean(UCL), "\nFor two-tail CI:\n  The empirical coverage probability is ", mean(CI[1,] < 4 & CI[2,] > 4), "\n  The average confidence interval width is ", mean(CI[2] - CI[1]))
+```
+
+
+**(3) Repeat the experiments in Example 6.6 with the same parameter set-up. Compare the two types of confidence interval, such as empirical coverage probability and average confidence interval width.**
+
+```{r}
+# one-tail
+n <- 20
+alpha <- .05
+UCL <- replicate(1000, expr = {
+  x <- rchisq(n, df = 2)
+  (n-1) * var(x) / qchisq(alpha, df = n-1)
+} )
+# two-tail
+CI <- replicate(1000, expr = {
+  x <- rchisq(n, df = 2)
+  c((n-1) * var(x) / qchisq(1-alpha/2, df = n-1),
+    (n-1) * var(x) / qchisq(alpha/2, df = n-1))
+} )
+# output
+cat("For one-tail CI:\n  The empirical coverage probability is ", mean(UCL > 4), "\n  The average confidence interval width is ", mean(UCL), "\nFor two-tail CI:\n  The empirical coverage probability is ", mean(CI[1,] < 4 & CI[2,] > 4), "\n  The average confidence interval width is ", mean(CI[2] - CI[1]))
+```
+
+
+**(4) Which confidence interval would you recommend in practice? Explain why.**
+
+As we can see, the empirical coverage probability will always be similar whether it is a one-tail or two-tail CI, and the average confidence interval width also can not tell which one is better. Therefore, which one I will choose depends on the situation. If I am considering whether the upper confidence limit is greater than the truth, and don't care the lower limit, than I will choose the first one. However, if now I am considering both upper and lower limit, then the second one is certainly more preferable.

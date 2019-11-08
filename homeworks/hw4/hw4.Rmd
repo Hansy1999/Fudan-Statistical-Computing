@@ -1,0 +1,160 @@
+---
+title: "Homework 4"
+author: "Han Siyue 17307110012"
+date: "2019/10/26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Exercise 5.15
+
+**Obtain the stratified importance sampling estimate in Example 5.13 and compare it with the result of Example 5.10.**
+
+**Note that when the interval range (0, 1) is divided into five equal-length subintervals, the density provided in the textbook does not have integral one within the subinterval. Derive the correct density for yourself.**
+
+
+#### Example 5.10 (Choice of the importance function)
+
+In this example several possible choices of importance functions to estimate $\int^1_0\frac{e^{-x}}{1+x^2}dx$ by importance sampling method are compared. One of the candidates for the importance
+functions is $f_3(x) = e^{−x}/(1 − e^{−1}),\quad 0<x<1$. The code for this method is shown below.
+
+```{r}
+m <- 10000
+g <- function(x) {
+  exp(-x - log(1+x^2)) * (x > 0) * (x < 1)
+}
+u <- runif(m) #f3, inverse transform method
+x <- - log(1 - u * (1 - exp(-1)))
+fg <- g(x) / (exp(-x) / (1 - exp(-1)))
+theta.IS <- mean(fg)
+se.IS <- sd(fg)
+```
+
+#### Back to the Exercise
+
+Now that we have $f(x) = f_3(x) = e^{−x}/(1 − e^{−1}),\quad 0<x<1$, we can calculate the corresponding c.d.f. 
+$$
+F(t) = \int_0^t e^{−x}/(1 − e^{−1})dx = \frac{1}{1 − e^{−1}}\int_0^t e^{−x}dx = \frac{1-e^{-t}}{1 − e^{−1}}
+$$
+And we can divide the (0, 1) interval into 5 equal-length subintervals $I_j=(\frac{j-1}{5},\frac{j}{5}),\quad j= 1,\cdots,5$, for the $j$-th subinterval, the probability for $x \in I_j$ is 
+$$
+{\rm P}(x \in I_j)=F(\frac{j}{5})-F(\frac{j-1}{5})=\frac{1-e^{-j/5}}{1 − e^{−1}} - \frac{1-e^{-(j-1)/5}}{1 − e^{−1}}=\frac{e^{-(j-1)/5}-e^{-j/5}}{1 − e^{−1}}
+$$ 
+Therefore, the conditional density of f restricted in $I_j$ is 
+$$
+f_j(x)=f(x)\mathbf 1_{\{x \in I_j\}}/{\rm P}(x \in I_j)=e^{−x}/(1 − e^{−1})\cdot \frac{1 − e^{−1}}{e^{-(j-1)/5}-e^{-j/5}} \cdot \mathbf 1_{\{x \in I_j\}}=\frac{e^{−x} \cdot \mathbf 1_{\{x \in I_j\}}}{e^{-(j-1)/5}-e^{-j/5}}
+$$
+```{r}
+m <- 10000
+cdf <- function(x) {
+  (1 - exp(-x))/(1 - exp(-1))
+}
+n <- numeric(6) # saving the interval boundaries in samples, in other words, from which sample to which sample is sampled from certain strata
+n[0] <- 0
+theta.SI <- 0
+var.SI <- 0
+for (i in 1:5) {
+  n[i+1] <- floor(m * cdf(0.2*i))
+  u <- runif(n[i+1]-n[i]) # inverse transform
+  x <- - log(exp(-(i-1)/5) - u * (exp(-(i-1)/5) - exp(-(i)/5)))
+  fg <- g(x) / (exp(-x) / (exp(-(i-1)/5) - exp(-(i)/5)))
+  theta.SI <- theta.SI + mean(fg)
+  var.SI <- var.SI + sd(fg)^2
+}
+se.SI <- sqrt(var.SI)
+print(round(rbind(theta.IS, theta.SI, se.IS, se.SI), 5))
+```
+
+As we can see, the stratified importance sampling gets almost the same estimate for $\theta = \int^1_0\frac{e^{-x}}{1+x^2}dx$ as importance sampling, and reduce the standard error notably.
+
+#### Divide the integral range with quantiles
+
+**Moreover, please divide the integral range into five pieces with quantiles of the importance function $f_3(x)$, and make comparison with simulations.**
+
+The quantile function is $F^{-1}(x)=-\log[1-(1-e^{-1})x]$.
+```{r}
+m <- 2000
+a <- numeric(6) # saving the boundaries of 5 subintervals
+for (i in 1:6) {
+  a[i] <- - log(1 - (1 - exp(-1)) * 0.2 * (i-1))
+}
+theta.SI2 <- 0
+var.SI2 <- 0
+for (i in 1:5) {
+  u <- runif(m) # inverse transform
+  x <- - log(exp(-a[i]) - u * (1 - exp(-1)) / 5)
+  fg <- g(x) / (5 * exp(-x) / (1 - exp(-1)))
+  theta.SI2 <- theta.SI2 + mean(fg)
+  var.SI2 <- var.SI2 + sd(fg)^2
+}
+se.SI2 <- sqrt(var.SI2)
+print(round(rbind(theta.IS, theta.SI, theta.SI2, se.IS, se.SI, se.SI2), 5))
+```
+
+As we can see, the two stratified importance samplings get almost the same estimate for $\theta = \int^1_0\frac{e^{-x}}{1+x^2}dx$. And the standard error of stratified importance sampling with equal-length subintervals gets a slightly better, smaller standard error.
+
+### Exercise 6.1
+
+**Estimate the MSE of the level $k$ trimmed means for random samples of size 20 generated from a standard Cauchy distribution. (The target parameter $\theta$ is the center or median; the expected value does not exist.) Summarize the estimates of MSE in a table for $k = 1, 2, \cdots, 9$.**
+
+```{r}
+n <- 20
+m <- 1000
+mse <- numeric(9)
+for (k in 1:9) {
+  tmean <- numeric(m)
+  for (i in 1:m) {
+    x <- sort(rcauchy(n))
+    tmean[i] <- sum(x[(k+1):(n-k)]) / (n-2*k)
+  }
+  mse[k] <- mean(tmean^2)
+}
+print(cbind(k = 1:9, mse = round(mse, 4)))
+plot(mse)
+```
+
+As we can see, there is an decreasing tendency in MSE when the trimmed parameter k increases, which is opposite to result of a standard normal distribution. This is mainly because Cauchy distribution have a heavy tail, which means it is more likely for a random sample to get an extreme outlier from a standard Cauchy distribution than that from a standard normal distribution. As a result, the bigger $k$ is, the more likely all the extreme outliers have been trimmed, and therefore, the smaller MSE will be.
+
+### Extra Exercise
+
+**Prove that the $k$-level trimmed mean estimator has expectation zero when n random samples are independently generated from standard normal distribution.**
+
+$\underline{\boldsymbol{pf}}:$ Suppose that $X_1, \cdots , X_n$ is a random sample from standard normal distribution and $X_{(1)}, \cdots , X_{(n)}$ is the corresponding ordered sample, such that $X_{(1)}\le \cdots \le X_{(n)}$. 
+
+Define $f_{X_{(i)}}$ to be the pdf of $X_{(i)}$, $f(x)$ to be the pdf of standard normal distribution, and $F(x)$ to be the cdf of standard normal distribution. Then $\forall \ i \in \{1, \cdots , n\}$, we have
+$$
+f_{X_{(i)}}(x)=nf(x)\begin{pmatrix}n-1\\i-1\end{pmatrix}F(x)^{i-1}(1-F(x))^{n-i}
+$$
+And for standard normal distribution, we have $f(-x)=f(x),\ F(-x)=1-F(x)$. Then, 
+$$
+\begin{align}
+f_{X_{(n-i+1)}}(-x)
+&=nf(-x)\begin{pmatrix}n-1\\n-i+1-1\end{pmatrix}F(-x)^{n-i+1-1}(1-F(-x))^{n-(n-i+1)}\\
+&=nf(x)\begin{pmatrix}n-1\\i-1\end{pmatrix}(1-F(x))^{n-i}F(x)^{i-1}=f_{X_{(i)}}(x)\\
+\end{align}
+$$
+$$
+\begin{align}
+{\rm E}[X_{(i)}+X_{(n-i+1)}]
+&={\rm E}[X_{(i)}]+{\rm E}[X_{(n-i+1)}]
+=\int_{-\infty}^{\infty}xf_{X_{(i)}}(x)dx+\int_{-\infty}^{\infty}xf_{X_{(n-i+1)}}(x)dx\\
+&=\int_{-\infty}^{\infty}xf_{X_{(i)}}(x)dx+\int_{-\infty}^{\infty}-xf_{X_{(n-i+1)}}(-x)dx\\
+&=\int_{-\infty}^{\infty}xf_{X_{(i)}}(x)dx+\int_{-\infty}^{\infty}-xf_{X_{(i)}}(x)dx=0
+\end{align}
+$$
+That is, ${\rm E}[X_{(i)}+X_{(n-i+1)}]=0, \quad \forall \ i \in \{1, \cdots , n\}$. Therefore,
+$$
+\begin{align}
+{\rm E}\left[\overline X_{[-k]}\right]
+&={\rm E}\left[\frac{1}{n-2k}\sum_{i=k+1}^{n-k}X_{(k)}\right]
+=\frac{1}{n-2k}{\rm E}\left[\sum_{i=1}^{n}X_{(k)}-\sum_{i=1}^{k}\left(X_{(i)}+X_{(n-i+1)}\right)\right]\\
+&=\frac{1}{n-2k}\left\{{\rm E}\left[\sum_{i=1}^{n}X_{(k)}\right]-{\rm E}\left[\sum_{i=1}^{k}\left(X_{(i)}+X_{(n-i+1)}\right)\right]\right\}\\
+&=\frac{1}{n-2k}\left\{{\rm E}\left[\sum_{i=1}^{n}X_{k}\right]-\sum_{i=1}^{k}{\rm E}\left[X_{(i)}+X_{(n-i+1)}\right]\right\}\\
+&=\frac{1}{n-2k}\left\{\sum_{i=1}^{n}{\rm E}\left[X_{k}\right]-\sum_{i=1}^{k}{\rm E}\left[X_{(i)}+X_{(n-i+1)}\right]\right\}\\
+&=\frac{1}{n-2k}\left\{\sum_{i=1}^{n}0-\sum_{i=1}^{k}0\right\}=0
+\end{align}
+$$
+Q.E.D.
