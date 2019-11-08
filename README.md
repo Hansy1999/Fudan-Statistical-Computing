@@ -11,7 +11,11 @@ For [Homework 1](.\homeworks\hw1\hw1.html), my score of this homework is: 98/100
 
 For [Homework 2](.\homeworks\hw2\hw2.html), my score of this homework is: 100/100, with no comment.
 
-For [Homework 3](.\homeworks\hw3\hw3.html), no score received yet.
+For [Homework 3](.\homeworks\hw3\hw3.html), my score of this homework is: 100/100, with no comment.
+
+For [Homework 4](.\homeworks\hw4\hw4.html), my score of this homework is: 100/100, with no comment.
+
+For [Homework 5](.\homeworks\hw5\hw5.html), no score received yet.
 
 ## Notes
 
