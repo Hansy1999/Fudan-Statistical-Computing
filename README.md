@@ -21,12 +21,6 @@ For [Homework 6](.\homeworks\hw6\hw6.html), my score of this homework is: 98/100
 
 For [Homework 7](.\homeworks\hw7\hw7.html), no score received yet.
 
-
-
-## Notes
-
-These pdf's are [notes](.\notes) taken in class, with ugly handwriting and chaotic typesetting, hope you don't mind.
-
 ## R in class
 
 These [R code](.\R_in_class) are what is displayed in class by the professor.
