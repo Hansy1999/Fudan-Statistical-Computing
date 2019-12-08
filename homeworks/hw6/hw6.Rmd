@@ -1,0 +1,239 @@
+---
+title: "Homework 6"
+author: "Han Siyue 17307110012"
+date: "2019/11/23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Packages for Bootstrap
+```{r}
+library(boot)
+library(bootstrap)
+```
+
+### Exercise 7.3
+Obtain a bootstrap t confidence interval estimate for the correlation statistic in Example 7.2 (`law` data in `bootstrap`).
+```{r}
+boot.t.ci <- function(x, B = 500, R = 100, level = .95, statistic){
+  #compute the bootstrap t CI
+  x <- as.matrix(x);  n <- nrow(x)
+  stat <- numeric(B); se <- numeric(B)
+    
+  boot.se <- function(x, R, f) {
+    #local function to compute the bootstrap
+    #estimate of standard error for statistic f(x)
+    x <- as.matrix(x); m <- nrow(x)
+    th <- replicate(R, expr = {
+      i <- sample(1:m, size = m, replace = TRUE)
+      f(x[i, ])
+    })
+    return(sd(th))
+  }
+  
+  for (b in 1:B) {
+    j <- sample(1:n, size = n, replace = TRUE)
+    y <- x[j, ]
+    stat[b] <- statistic(y)
+    se[b] <- boot.se(y, R = R, f = statistic)
+  }
+  stat0 <- statistic(x)
+  t.stats <- (stat - stat0) / se
+  se0 <- sd(stat)
+  alpha <- 1 - level
+  Qt <- quantile(t.stats, c(alpha/2, 1-alpha/2), na.rm = T, type = 1)
+  names(Qt) <- rev(names(Qt))
+  CI <- rev(stat0 - Qt * se0)
+}
+
+data(law, package = "bootstrap")
+dat <- cbind(law$LSAT, law$GPA)
+stat1 <- function(dat) {
+  cor(dat[, 1], dat[, 2])
+}
+ci <- boot.t.ci(dat, statistic = stat1, B=2000, R=200)
+print(ci)
+```
+
+
+### Exercise 7.4
+Refer to the air-conditioning data set `aircondit` provided in the `boot` package. The 12 observations are the times in hours between failures of airconditioning equipment [63, Example 1.1]:
+3, 5, 7, 18, 43, 85, 91, 98, 100, 130, 230, 487.
+Assume that the times between failures follow an exponential model Exp($\lambda$). Obtain the MLE of the hazard rate $\lambda$ and use bootstrap to estimate the bias and standard error of the estimate.
+```{r}
+data(aircondit, package = "boot")
+
+# MLE for lambda
+lambda.MLE <- function(x){
+  L <- function(lambda, x){
+    sum(log(lambda) - lambda * x)
+  }
+  lambda.MLE <- optimize(L, interval = c(0, 10), maximum = TRUE, x = x)
+  lambda.MLE$maximum
+}
+
+lambda.hat <- lambda.MLE(aircondit$hours)
+
+# bootstrap estimate of bias
+B <- 2000
+n <- nrow(aircondit)
+lambda.b <- numeric(B)
+
+for (b in 1:B) {
+  i <- sample(1:n, size = n, replace = TRUE)
+  x.boot <- aircondit$hours[i]
+  lambda.b[b] <- lambda.MLE(x.boot)
+}
+
+bias <- mean(lambda.b) - lambda.hat
+bias
+
+# bootstrap estimate of standard error
+se <- sd(lambda.b)
+se
+```
+
+
+### Exercise 7.6
+Efron and Tibshirani discuss the `scor` (`bootstrap`) test score data on 88 students who took examinations in five subjects [84, Table 7.1], [188, Table 1.2.1]. The first two tests (mechanics, vectors) were closed book and the last three tests (algebra, analysis, statistics) were open book. Each row of the data frame is a set of scores $(x_{i1}, \cdots, x_{i5})$ for the $i^{th}$ student. Use a panel display to display the scatter plots for each pair of test scores.
+```{r}
+data(scor, package = "bootstrap")
+pairs(scor, c("mechanics", "vectors", "algebra", "analysis", "statistics"))
+```
+
+Compare the plot with the sample correlation matrix.
+```{r}
+data <- scor
+names(data) <- c("mechanics", "vectors", "algebra", "analysis", "statistics")
+corr_mat <- cor(data, data)
+corr_mat
+```
+
+Obtain bootstrap estimates of the standard errors for each of the following estimates: $\hat\rho_{12}$ = $\hat\rho$(mec, vec), $\hat\rho_{34}$ = $\hat\rho$(alg, ana), $\hat\rho_{35}$ = $\hat\rho$(alg, sta), $\hat\rho_{45}$ = $\hat\rho$(ana, sta).
+```{r}
+## set up the bootstrap
+B <- 2000           #number of replicates
+n <- nrow(data)     #sample size
+
+## build a function for bootstrap estimate of standard error
+boot_est <- function(x1, x2){
+  rho <- numeric(B)
+  for (b in 1:B) {
+    # randomly select the indice
+    i <- sample(1:n, size = n, replace = TRUE)
+    # select dataframe according to the indice and change it to vector
+    x1.sample <- as.vector(as.matrix(data[i, x1]))
+    x2.sample <- as.vector(as.matrix(data[i, x2]))
+    rho[b] <- cor(x1.sample, x2.sample)
+  }
+  se <- sd(rho)
+  return(se)
+}
+
+## calculate the result and print the result
+R12 <- boot_est(1, 2)
+R34 <- boot_est(3, 4)
+R35 <- boot_est(3, 5)
+R45 <- boot_est(4, 5)
+result <- data.frame(R = c(R12, R34, R35, R45), row.names = c("ρ(mec, vec)","ρ(alg, ana)","ρ(alg, sta)","ρ(ana, sta)"))
+names(result) <- "standard errors"
+result
+```
+
+
+### Exercise 7.7
+Refer to Exercise 7.6. Efron and Tibshirani discuss the following example [84, Ch. 7]. The five-dimensional scores data have a $5 \times 5$ covariance matrix $\Sigma$, with positive eigenvalues $\lambda_1 > \cdots > \lambda_5$. In principal components analysis,
+$$
+\theta = \frac{\lambda_1}{\sum_{j=1}^5 \lambda_j}
+$$
+measures the proportion of variance explained by the first principal component. Let $\hat\lambda_1 > \cdots > \hat\lambda_5$ be the eigenvalues of $\hat\Sigma$, where $\hat\Sigma$ is the MLE of $\Sigma$. Compute the sample estimate
+$$
+\hat\theta = \frac{\hat\lambda_1}{\sum_{j=1}^5 \hat\lambda_j}
+$$
+of $\theta$. Use bootstrap to estimate the bias and standard error of $\hat\theta$.
+```{r}
+data.cov <- cov(data, data)
+data.lambda <- eigen(data.cov)$values
+data.theta <- data.lambda[1] / sum(data.lambda)
+
+## the bootstrap
+B <- 2000           #number of replicates
+n <- nrow(data)     #sample size
+sample.theta <- numeric(B)
+for (b in 1:B) {
+  # randomly select the indice
+  i <- sample(1:n, size = n, replace = TRUE)
+  sample <- data[i, ]
+  sample.cov <- cov(sample, sample)
+  sample.lambda <- eigen(sample.cov)$values
+  sample.theta[b] <- sample.lambda[1] / sum(sample.lambda)
+}
+bias <- mean(sample.theta) - data.theta
+se <- sd(sample.theta)
+print(cbind(bias, se))
+```
+
+
+### Proj 6.D
+Repeat Example 6.11 for multivariate tests of normality. Mardia [187] defines multivariate kurtosis as
+$$
+\beta_{2,d}=E[(X-\mu)^T\Sigma^{-1}(X-\mu)]^2
+$$
+For $d$-dimensional multivariate normal distributions the kurtosis coefficient is $\beta_{2,d} = d(d + 2)$. The multivariate kurtosis statistic is
+$$
+b_{2,d}=\frac1n \sum_{i=1}^n((X_i-\bar X)^T\widehat\Sigma^{-1}(X_i-\bar X)) \tag{6.6}
+$$
+The large sample test of multivariate normality based on $b_{2,d}$ rejects the null hypothesis at significance level $\alpha$ if
+$$
+\left|\frac{b_{2,d}-d(d + 2)}{\sqrt{8d(d + 2)/n}}\right| \ge \Phi^{-1}(1-\alpha/2)
+$$
+However, $b_{2,d}$ converges very slowly to the normal limiting distribution. Compare the empirical power of Mardia’s skewness and kurtosis tests of multivariate normality with the energy test of multivariate normality `mvnorm.etest`(`energy`) (6.3) [226, 263]. Consider multivariate normal location mixture alternatives where the two samples are generated from `mlbench.twonorm` in the `mlbench` package [174].
+```{r}
+library(energy)
+library(mlbench)
+
+alpha <- .1
+d <- 2
+n <- 30
+m <- 100        #try small m for a trial run
+epsilon <- c(seq(0, 1, .1))
+test1 <- test2 <- test3 <- test4 <- numeric(m)
+cv.mardia <- qnorm(1-alpha/2, 0, 1)
+sim <- matrix(0, 31, 3)
+
+mardia <- function(x,d){
+  #computes Mardia test
+  x.mean <- colMeans(x)
+  signa.inverse <- solve(cov(x))
+  result <- 0
+  for (i in 1:n){
+    result <- result + (t(x[i, ]-x.mean) %*% signa.inverse  %*% (x[i, ]-x.mean))^2
+  }
+  beta <- result / n
+  mardia.test <- abs((beta - d*(d+2))/sqrt(8*d*(d+2)/n))
+  return(mardia.test)
+}
+
+# estimate power
+for (i in 0:30) {
+  epsilon <- i * .5
+  for (j in 1:m) {
+    p <- mlbench.2dnormals(n, d, epsilon)
+    x <- p[["x"]]
+    test1[j] <- as.integer(mvnorm.etest(x, R=200)$p.value <= alpha)
+    test2[j] <- as.integer(abs(mardia(x,d)) >= cv.mardia)
+  }
+  sim[i+1, ] <- c(epsilon, mean(test1), mean(test2))
+}
+
+# plot the empirical estimates of power
+plot(sim[,1], sim[,2], ylim = c(0, 1.5), type = "l",
+     xlab = bquote(epsilon), ylab = "power")
+lines(sim[,1], sim[,3], lty = 2, col = 2)
+abline(h = alpha, lty = 3)
+legend("topright", 1, c("energy", "Mardia"),
+       lty = c(1,2), col = c(1,2), inset = .02)
+```
+

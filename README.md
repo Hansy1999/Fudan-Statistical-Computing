@@ -15,7 +15,13 @@ For [Homework 3](.\homeworks\hw3\hw3.html), my score of this homework is: 100/10
 
 For [Homework 4](.\homeworks\hw4\hw4.html), my score of this homework is: 100/100, with no comment.
 
-For [Homework 5](.\homeworks\hw5\hw5.html), no score received yet.
+For [Homework 5](.\homeworks\hw5\hw5.html), my score of this homework is: 95/100, with comment " Independence? " on extra exercise 1 from TA.
+
+For [Homework 6](.\homeworks\hw6\hw6.html), my score of this homework is: 98/100, with comment " Derive the MLE manually. " on exercise 7.4 from TA.
+
+For [Homework 7](.\homeworks\hw7\hw7.html), no score received yet.
+
+
 
 ## Notes
 
@@ -24,6 +30,10 @@ These pdf's are [notes](.\notes) taken in class, with ugly handwriting and chaot
 ## R in class
 
 These [R code](.\R_in_class) are what is displayed in class by the professor.
+
+## Lectures
+
+These pdf's are [lecture notes](.\lectures) printed from the web pages on shjkx.wang, which the professor used as one of our course websites.
 
 ## Textbook
 

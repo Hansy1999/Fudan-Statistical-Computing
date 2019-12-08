@@ -1,0 +1,324 @@
+---
+title: "Homework 7"
+author: "Han Siyue 17307110012"
+date: "2019/12/2"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tinytex)
+options(tinytex.verbose = TRUE)
+```
+
+## Exercise 7.10
+In Example 7.18, leave-one-out ($n$-fold) cross validation was used to select the best fitting model. Repeat the analysis replacing the Log-Log model with a cubic polynomial model. Which of the four models is selected by the cross validation procedure? Which model is selected according to maximum adjusted $R^2$? 
+```{r}
+library(DAAG); attach(ironslag)
+
+a <- seq(10, 40, .1)     #sequence for plotting fits
+
+par(mfrow = c(2, 2))    #layout for graphs
+
+L1 <- lm(magnetic ~ chemical)
+plot(chemical, magnetic, main="Linear", pch=16)
+yhat1 <- L1$coef[1] + L1$coef[2] * a
+lines(a, yhat1, lwd=2)
+
+L2 <- lm(magnetic ~ chemical + I(chemical^2))
+plot(chemical, magnetic, main="Quadratic", pch=16)
+yhat2 <- L2$coef[1] + L2$coef[2] * a + L2$coef[3] * a^2
+lines(a, yhat2, lwd=2)
+
+L3 <- lm(log(magnetic) ~ chemical)
+plot(chemical, magnetic, main="Exponential", pch=16)
+logyhat3 <- L3$coef[1] + L3$coef[2] * a
+yhat3 <- exp(logyhat3)
+lines(a, yhat3, lwd=2)
+
+L4 <- lm(magnetic ~ chemical + I(chemical^2) + I(chemical^3))
+plot(chemical, magnetic, main="Cubic", pch=16)
+yhat4 <- L4$coef[1] + L4$coef[2] * a + L4$coef[3] * a^2 + L4$coef[4] * a^3
+lines(a, yhat4, lwd=2)
+```
+
+
+```{r}
+n <- length(magnetic)   #in DAAG ironslag
+e1 <- e2 <- e3 <- e4 <- numeric(n)
+
+# for n-fold cross validation
+# fit models on leave-one-out samples
+for (k in 1:n) {
+  y <- magnetic[-k]
+  x <- chemical[-k]
+  
+  J1 <- lm(y ~ x)
+  yhat1 <- J1$coef[1] + J1$coef[2] * chemical[k]
+  e1[k] <- magnetic[k] - yhat1
+  
+  J2 <- lm(y ~ x + I(x^2))
+  yhat2 <- J2$coef[1] + J2$coef[2] * chemical[k] +
+    J2$coef[3] * chemical[k]^2
+  e2[k] <- magnetic[k] - yhat2
+  
+  J3 <- lm(log(y) ~ x)
+  logyhat3 <- J3$coef[1] + J3$coef[2] * chemical[k]
+  yhat3 <- exp(logyhat3)
+  e3[k] <- magnetic[k] - yhat3
+  
+  J4 <- lm(y ~ x + I(x^2) + I(x^3))
+  yhat4 <- J4$coef[1] + J4$coef[2] * chemical[k] +
+    J4$coef[3] * chemical[k]^2 + J4$coef[4] * chemical[k]^3
+  e4[k] <- magnetic[k] - yhat4
+}
+
+c(mean(e1^2), mean(e2^2), mean(e3^2), mean(e4^2))
+c(summary(L1)$adj.r.squared, summary(L2)$adj.r.squared,
+  summary(L3)$adj.r.squared, summary(L4)$adj.r.squared)
+```
+
+As we can see, Quadratic model performs the best, and Cubic model second to it. And because the Cubic model add one varible to some extent, the model will surely fit the data more, however, it may also cause overfitting, that's why the adjusted $R^2$ of it is much lower.
+
+## Exercise 7.11
+In Example 7.18, leave-one-out ($n$-fold) cross validation was used to select the best fitting model. Use leave-two-out cross validation to compare the models.
+```{r}
+n <- length(magnetic)   #in DAAG ironslag
+
+# for n-fold cross validation
+# fit models on leave-two-out samples
+ij <- cbind(rep(1:n, each = n), rep(1:n, n))
+ij <- ij[ij[, 1] != ij[, 2], ]  # all pairs of 1:n and 1:n
+e1 <- e2 <- e3 <- e4 <- e5 <- numeric(length(ij))
+
+for (k in 1:(length(ij)/2)) {
+  i <- ij[k, 1]
+  j <- ij[k, 2]
+  y <- magnetic[-c(i, j)]
+  x <- chemical[-c(i, j)]
+  
+  J1 <- lm(y ~ x)
+  yhat1 <- J1$coef[1] + J1$coef[2] * chemical[i]
+  e1[2*k-1] <- magnetic[i] - yhat1
+  yhat1 <- J1$coef[1] + J1$coef[2] * chemical[j]
+  e1[2*k] <- magnetic[j] - yhat1
+    
+  J2 <- lm(y ~ x + I(x^2))
+  yhat2 <- J2$coef[1] + J2$coef[2] * chemical[i] +
+    J2$coef[3] * chemical[i]^2
+  e2[2*k-1] <- magnetic[i] - yhat2
+  yhat2 <- J2$coef[1] + J2$coef[2] * chemical[j] +
+    J2$coef[3] * chemical[j]^2
+  e2[2*k] <- magnetic[j] - yhat2
+    
+  J3 <- lm(log(y) ~ x)
+  logyhat3 <- J3$coef[1] + J3$coef[2] * chemical[i]
+  yhat3 <- exp(logyhat3)
+  e3[2*k-1] <- magnetic[i] - yhat3
+  logyhat3 <- J3$coef[1] + J3$coef[2] * chemical[j]
+  yhat3 <- exp(logyhat3)
+  e3[2*k] <- magnetic[j] - yhat3
+    
+  J4 <- lm(log(y) ~ log(x))
+  logyhat4 <- J4$coef[1] + J4$coef[2] * log(chemical[i])
+  yhat4 <- exp(logyhat4)
+  e4[2*k-1] <- magnetic[i] - yhat4
+  logyhat4 <- J4$coef[1] + J4$coef[2] * log(chemical[j])
+  yhat4 <- exp(logyhat4)
+  e4[2*k] <- magnetic[j] - yhat4
+    
+  J5 <- lm(y ~ x + I(x^2) + I(x^3))
+  yhat5 <- J5$coef[1] + J5$coef[2] * chemical[i] +
+    J5$coef[3] * chemical[i]^2 + J5$coef[4] * chemical[i]^3
+  e5[2*k-1] <- magnetic[i] - yhat5
+  yhat5 <- J5$coef[1] + J5$coef[2] * chemical[j] +
+    J5$coef[3] * chemical[j]^2 + J5$coef[4] * chemical[j]^3
+  e5[2*k] <- magnetic[j] - yhat5
+}
+
+c(mean(e1^2), mean(e2^2), mean(e3^2), mean(e4^2), mean(e5^2))
+```
+
+Quadratic model and Cubic model still perform better than the other three models.
+
+## Project 7.A
+Conduct a Monte Carlo study to estimate the coverage probabilities of the standard normal bootstrap confidence interval, the basic bootstrap confidence interval, and the percentile confidence interval. Sample from a normal population and check the empirical coverage rates for the sample mean. Find the proportion of times that the confidence intervals miss on the left, and the porportion of times that the confidence intervals miss on the right. 
+```{r}
+set.seed(123)
+n <- 500 #number of data
+B <- 200
+m <- 1000 #number of repetition of real cases
+
+theta.star <- numeric(B)
+alpha <- c(.025, .975)
+ci.normal <- ci.basic <- ci.percentile <- matrix(0, m, 2)
+theta.hat <- numeric(m)
+
+for (i in 1:m){
+  data <- rnorm(n) #one case of sample from a normal population
+  theta.hat[i] <- mean(data) #sample mean
+  #bootstrap
+  for (b in 1:B){
+    data.sample <- sample(1:n, size = n, replace = TRUE)
+    data.star <- data[data.sample]
+    theta.star[b] <- mean(data.star)
+  }
+  #calculations for bootstrap confidence intervals
+  ci.normal[i, ] <- theta.hat[i] + qnorm(alpha) * sd(theta.star)
+  ci.basic[i, ] <- 2 * theta.hat[i] -
+    quantile(theta.star, rev(alpha), type=1)
+  ci.percentile[i, ] <- quantile(theta.star, alpha, type=6)
+}
+
+#check the empirical coverage rates
+ci.rate.normal <- mean(ci.normal[, 1] < 0 & ci.normal[, 2] > 0)
+ci.rate.basic <- mean(ci.basic[, 1] < 0 & ci.basic[, 2] > 0)
+ci.rate.percentile <- mean(ci.percentile[, 1] < 0 & ci.percentile[, 2] > 0)
+
+#confidence intervals miss on the left
+ci.rate.normal.left <- mean(ci.normal[, 2] < 0) / (1-ci.rate.normal)
+ci.rate.basic.left <- mean(ci.basic[, 2] < 0) / (1-ci.rate.basic)
+ci.rate.percentile.left <- mean(ci.percentile[, 2] < 0) / (1-ci.rate.percentile)
+
+#confidence intervals miss on the right 
+ci.rate.normal.right <- mean(ci.normal[, 1] > 0) / (1-ci.rate.normal)
+ci.rate.basic.right <- mean(ci.basic[, 1] > 0) / (1-ci.rate.basic)
+ci.rate.percentile.right <- mean(ci.percentile[, 1] > 0) / (1-ci.rate.percentile)
+
+#output the result
+output <- matrix(c(ci.rate.normal, ci.rate.basic, ci.rate.percentile,
+                   ci.rate.normal.left, ci.rate.basic.left, ci.rate.percentile.left, 
+                   ci.rate.normal.right, ci.rate.basic.right, ci.rate.percentile.right),
+                 3, 3)
+output <- as.data.frame(output, row.names = c("normal","basic","percentile"))
+names(output) <- c("coverage rate", "miss on the left", "miss on the right")
+output
+```
+
+
+## Project 7.B
+Repeat Project 7.A for the sample skewness statistic. Compare the coverage rates for normal populations (skewness 0) and $\chi^2(5)$ distributions (positive skewness).
+```{r}
+set.seed(123)
+n <- 500 #number of data
+B <- 200
+m <- 1000 #number of repetition of real cases
+
+theta.star <- numeric(B)
+alpha <- c(.025, .975)
+ci.normal <- ci.basic <- ci.percentile <- matrix(0, m, 2)
+theta.hat <- numeric(m)
+
+sk <- function(x) {
+  #computes the sample skewness coeff.
+  xbar <- mean(x)
+  m3 <- mean((x - xbar)^3)
+  m2 <- mean((x - xbar)^2)
+  return( m3 / m2^1.5 )
+}
+
+for (i in 1:m){
+  data <- rnorm(n) #sample from a normal population
+  theta.hat[i] <- sk(data) #skewness
+  #bootstrap
+  for (b in 1:B){
+    data.sample <- sample(1:n, size = n, replace = TRUE)
+    data.star <- data[data.sample]
+    theta.star[b] <- sk(data.star)
+  }
+  #calculations for bootstrap confidence intervals
+  ci.normal[i, ] <- theta.hat[i] + qnorm(alpha) * sd(theta.star)
+  ci.basic[i, ] <- 2 * theta.hat[i] -
+    quantile(theta.star, rev(alpha), type=1)
+  ci.percentile[i, ] <- quantile(theta.star, alpha, type=6)
+}
+
+#check the empirical coverage rates
+ci.rate.normal <- mean(ci.normal[, 1] < 0 & ci.normal[, 2] > 0)
+ci.rate.basic <- mean(ci.basic[, 1] < 0 & ci.basic[, 2] > 0)
+ci.rate.percentile <- mean(ci.percentile[, 1] < 0 & ci.percentile[, 2] > 0)
+
+#confidence intervals miss on the left
+ci.rate.normal.left <- mean(ci.normal[, 2] < 0) / (1-ci.rate.normal)
+ci.rate.basic.left <- mean(ci.basic[, 2] < 0) / (1-ci.rate.basic)
+ci.rate.percentile.left <- mean(ci.percentile[, 2] < 0) / (1-ci.rate.percentile)
+
+#confidence intervals miss on the right 
+ci.rate.normal.right <- mean(ci.normal[, 1] > 0) / (1-ci.rate.normal)
+ci.rate.basic.right <- mean(ci.basic[, 1] > 0) / (1-ci.rate.basic)
+ci.rate.percentile.right <- mean(ci.percentile[, 1] > 0) / (1-ci.rate.percentile)
+
+#output the result
+output <- matrix(c(ci.rate.normal, ci.rate.basic, ci.rate.percentile,
+                   ci.rate.normal.left, ci.rate.basic.left, ci.rate.percentile.left, 
+                   ci.rate.normal.right, ci.rate.basic.right, ci.rate.percentile.right),
+                 3, 3)
+output.normal <- as.data.frame(output, row.names = c("normal","basic","percentile"))
+names(output.normal) <- c("coverage rate", "miss on the left","miss on the right")
+print("normal case"); print(output.normal)
+```
+
+```{r}
+set.seed(123)
+n <- 500 #number of data
+B <- 200
+m <- 1000 #number of repetition of real cases
+
+theta.star <- numeric(B)
+alpha <- c(.025, .975)
+ci.normal <- ci.basic <- ci.percentile <- matrix(0, m, 2)
+theta.hat <- numeric(m)
+
+sk <- function(x) {
+  #computes the sample skewness coeff.
+  xbar <- mean(x)
+  m3 <- mean((x - xbar)^3)
+  m2 <- mean((x - xbar)^2)
+  return( m3 / m2^1.5 )
+}
+
+for (i in 1:m){
+  data <- rchisq(n, df=5) #sample from a chi-square population
+  theta.hat[i] <- sk(data) #skewness
+  #bootstrap
+  for (b in 1:B){
+    data.sample <- sample(1:n, size = n, replace = TRUE)
+    data.star <- data[data.sample]
+    theta.star[b] <- sk(data.star)
+  }
+  #calculations for bootstrap confidence intervals
+  ci.normal[i, ] <- theta.hat[i] + qnorm(alpha) * sd(theta.star)
+  ci.basic[i, ] <- 2 * theta.hat[i] -
+    quantile(theta.star, rev(alpha), type=1)
+  ci.percentile[i, ] <- quantile(theta.star, alpha, type=6)
+}
+theta.real <- mean(theta.hat)
+
+#check the empirical coverage rates
+ci.rate.normal <- mean(ci.normal[, 1] < theta.real & ci.normal[, 2] > theta.real)
+ci.rate.basic <- mean(ci.basic[, 1] < theta.real & ci.basic[, 2] > theta.real)
+ci.rate.percentile <- mean(ci.percentile[, 1] < theta.real &
+                           ci.percentile[, 2] > theta.real)
+
+#confidence intervals miss on the left
+ci.rate.normal.left <- mean(ci.normal[, 2] < theta.real) / (1-ci.rate.normal)
+ci.rate.basic.left <- mean(ci.basic[, 2] < theta.real) / (1-ci.rate.basic)
+ci.rate.percentile.left <- mean(ci.percentile[, 2] < theta.real) / (1-ci.rate.percentile)
+
+#confidence intervals miss on the right
+ci.rate.normal.right <- mean(ci.normal[, 1] > theta.real) / (1-ci.rate.normal)
+ci.rate.basic.right <- mean(ci.basic[, 1] > theta.real) / (1-ci.rate.basic)
+ci.rate.percentile.right <- mean(ci.percentile[, 1] > theta.real) / (1-ci.rate.percentile)
+
+#output the result
+output <- matrix(c(ci.rate.normal, ci.rate.basic, ci.rate.percentile,
+                   ci.rate.normal.left, ci.rate.basic.left, ci.rate.percentile.left,
+                   ci.rate.normal.right, ci.rate.basic.right, ci.rate.percentile.right),
+                 3, 3)
+output.chi <- as.data.frame(output, row.names = c("normal","basic","percentile"))
+names(output.chi) <- c("coverage rate", "miss on the left","miss on the right")
+print("chi-square case"); print(output.chi)
+```
+
